@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 
 #define MAXLINE 1024
-#define MTU 22
+#define MTU 1024
 
 char *String_Concat (char *String_1, char *String_2)
 {
@@ -28,8 +28,8 @@ int main (int argc, char *argv[]) {
   socklen_t alen= sizeof(client);
   char buffer[MAXLINE];
   int n;
-  char *syn= "SYN\0";
-  char *ack= "ACK\0";
+  char *syn= "SYN";
+  char *ack= "ACK";
   //long long numseq= 000000;
 
   //create socket
@@ -86,7 +86,7 @@ int main (int argc, char *argv[]) {
     if (strcmp(buffer,syn) == 0) {
       printf("Client : %s\n", buffer);
 
-      sendto(server_desc, (const char *)"SYN ACK,7000\0", strlen("SYN ACK,7000"),
+      sendto(server_desc, (const char *)"SYN-ACK7000", strlen("SYN ACK,7000"),
       MSG_CONFIRM, (const struct sockaddr *) &client,
             len);
 
@@ -103,16 +103,15 @@ int main (int argc, char *argv[]) {
     else {
     close(server_desc);}
 
-    //PORT DE DONNEES
-    sendto(server_desc_data, (const char *)"DEBUT ENVOI DU FICHIER\0", strlen("DEBUT ENVOI DU FICHIER\0"),
-    MSG_CONFIRM, (const struct sockaddr *) &client,
-          len);
-
+    n = recvfrom(server_desc_data, (char *)buffer, MTU,
+    MSG_WAITALL, ( struct sockaddr *) &client,
+    &len);
+    buffer[n] = '\0';
     FILE * fptr;
     struct stat st;
     int caractere;
-    fptr=fopen("fichiertest.txt","rb");
-    stat("fichiertest.txt", &st);
+    fptr=fopen(buffer,"rb");
+    stat(buffer, &st);
     int filesize = st.st_size; //taille du fichier
     printf("taille du fichier: %d\n",filesize);
 
@@ -120,19 +119,34 @@ int main (int argc, char *argv[]) {
     long long numseq= 000000; // a revoir car commence par 0 6 octets pr le num de sequence
     char *segments= malloc(filesize * sizeof(int) + 7);
     char numseqstr[6];
+    char numack[6];
 
     while (numseq<filesize){
       int lus= fread(segmentsaenvoyer, 1, MTU, fptr);
-      numseq+=lus;
       sprintf(numseqstr, "%lld", numseq); //conversion int --> str
       segments=String_Concat(numseqstr,segmentsaenvoyer);
 
       sendto(server_desc_data, (char *) segments,strlen(numseqstr)+lus,
       MSG_CONFIRM, (const struct sockaddr *) &client,
             len);
+//POUR RECEVOIR LE ACK00000N
+      n = recvfrom(server_desc_data, (char *)buffer, 9,
+      MSG_WAITALL, ( struct sockaddr *) &client,
+      &len);
+      buffer[n] = '\0';
+      memcpy(numack, buffer+3, 9 );
+      printf("NUMACK%s\n", numack);
+      if (atoi(numack) == numseq){
+        numseq+=lus;
+
+      }
+      printf("Client : %s\n", buffer);
 
 }
 
+sendto(server_desc_data, (char *) "FIN",strlen("FIN"),
+MSG_CONFIRM, (const struct sockaddr *) &client,
+      len);
 
 
     free(segmentsaenvoyer);
