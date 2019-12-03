@@ -13,7 +13,7 @@ int main (int argc, char *argv[]) {
   struct sockaddr_in adresse;
   int port = 5001;
   int valid = 1;
-  char buffer[MAXLINE];
+  char buffer[22+6];
   char *syn_ack= "SYN ACK\0";
 
   //create socket
@@ -63,7 +63,7 @@ int main (int argc, char *argv[]) {
                   int port_data = atoi(token);
                   adresse.sin_port= htons(port_data);
                   do {
-                  n = recvfrom(server_desc, (char *)buffer, 22,
+                  n = recvfrom(server_desc, (char *)buffer,22+6,
                                 MSG_WAITALL, ( struct sockaddr *) &adresse,
                                 &len);
                   buffer[n] = '\0';
