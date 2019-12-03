@@ -14,7 +14,6 @@ int main (int argc, char *argv[]) {
   int port = 5001;
   int valid = 1;
   char buffer[MAXLINE];
-
   char *syn_ack= "SYN ACK\0";
 
   //create socket
@@ -63,16 +62,13 @@ int main (int argc, char *argv[]) {
 //PORT DE DONNEES
                   int port_data = atoi(token);
                   adresse.sin_port= htons(port_data);
-                  n = recvfrom(server_desc, (char *)buffer, MAXLINE,
+                  do {
+                  n = recvfrom(server_desc, (char *)buffer, 22,
                                 MSG_WAITALL, ( struct sockaddr *) &adresse,
                                 &len);
                   buffer[n] = '\0';
                   printf("Server : %s\n", buffer);
-                  n = recvfrom(server_desc, (char *)buffer, MAXLINE,
-                                MSG_WAITALL, ( struct sockaddr *) &adresse,
-                                &len);
-                  buffer[n] = '\0';
-                  printf("Server : %s\n", buffer);
+                } while (strcmp(buffer,"FIN") != 0);
 
 
 
