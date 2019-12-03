@@ -10,6 +10,16 @@
 #define MAXLINE 1024
 #define MTU 22
 
+char *String_Concat (char *String_1, char *String_2)
+{
+    size_t len1 = strlen(String_1);
+    size_t len2 = strlen(String_2);
+    char *StringResult = malloc(len1+len2+1);
+    //might want to check for malloc-error...
+    memcpy(StringResult, String_1, len1);
+    memcpy(&StringResult[len1], String_2, len2+1);
+    return StringResult;
+}
 int main (int argc, char *argv[]) {
 
   struct sockaddr_in adresse, client, adressedata;
@@ -101,28 +111,27 @@ int main (int argc, char *argv[]) {
     FILE * fptr;
     struct stat st;
     int caractere;
-    int currentsize=0;
     fptr=fopen("fichiertest.txt","rb");
     stat("fichiertest.txt", &st);
     int filesize = st.st_size; //taille du fichier
     printf("taille du fichier: %d\n",filesize);
 
     char *segmentsaenvoyer = malloc(filesize * sizeof(int)); //vider le buffer c'est mieux
-    //int numseq= 000001; // 1 octet après le ack
-    //char numseqatransmettre[6];
-    //sprintf(numseqatransmettre, "%d", numseq);
-    //printf("%s\n", numseqatransmettre);
+    long long numseq= 000000; // a revoir car commence par 0 6 octets pr le num de sequence
+    char *segments= malloc(filesize * sizeof(int) + 7);
+    char numseqstr[6];
 
-    do
-    {
+    while (numseq<filesize){
       int lus= fread(segmentsaenvoyer, 1, MTU, fptr);
-      sendto(server_desc_data, (char *) segmentsaenvoyer,lus,
+      numseq+=lus;
+      sprintf(numseqstr, "%lld", numseq); //conversion int --> str
+      segments=String_Concat(numseqstr,segmentsaenvoyer);
+
+      sendto(server_desc_data, (char *) segments,strlen(numseqstr)+lus,
       MSG_CONFIRM, (const struct sockaddr *) &client,
             len);
-      currentsize += lus;
-      printf("segment envoyé %s\n, current size %d\n",segmentsaenvoyer, currentsize);
-    } while (currentsize< filesize) ;
 
+}
 
 
 
