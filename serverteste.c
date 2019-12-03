@@ -20,8 +20,7 @@ int main (int argc, char *argv[]) {
   int n;
   char *syn= "SYN\0";
   char *ack= "ACK\0";
-  char *monfichier;
-  int i = 1; //num seq initial
+  //long long numseq= 000000;
 
   //create socket
   int server_desc = socket(AF_INET, SOCK_DGRAM, 0);
@@ -66,7 +65,6 @@ int main (int argc, char *argv[]) {
   }
 
 
-
   int len = sizeof(client);
 
   while (1) {
@@ -102,67 +100,34 @@ int main (int argc, char *argv[]) {
 
     FILE * fptr;
     struct stat st;
+    int caractere;
+    int currentsize=0;
     fptr=fopen("fichiertest.txt","rb");
     stat("fichiertest.txt", &st);
     int filesize = st.st_size; //taille du fichier
     printf("taille du fichier: %d\n",filesize);
-    int currentsize=0;
-    char *contenufichier = malloc(filesize * sizeof(int));
-    char *segmentsaenvoyer = malloc(filesize * sizeof(int));
-    fgets( contenufichier, filesize, fptr ); //prend que le 1 er paragraphe probleme
+
+    char *segmentsaenvoyer = malloc(filesize * sizeof(int)); //vider le buffer c'est mieux
+    //int numseq= 000001; // 1 octet après le ack
+    //char numseqatransmettre[6];
+    //sprintf(numseqatransmettre, "%d", numseq);
+    //printf("%s\n", numseqatransmettre);
+
     do
     {
-      char numseq= i+currentsize;
-      memcpy(&numseq+segmentsaenvoyer,contenufichier+currentsize, MTU);
-      printf("%s", segmentsaenvoyer);
-      sendto(server_desc_data, (char *) segmentsaenvoyer, MTU+4,
+      int lus= fread(segmentsaenvoyer, 1, MTU, fptr);
+      sendto(server_desc_data, (char *) segmentsaenvoyer,lus,
       MSG_CONFIRM, (const struct sockaddr *) &client,
             len);
-      currentsize += MTU;
+      currentsize += lus;
+      printf("segment envoyé %s\n, current size %d\n",segmentsaenvoyer, currentsize);
+    } while (currentsize< filesize) ;
 
 
 
 
-      printf("%s\n", segmentsaenvoyer);
-
-    } while (currentsize <= filesize);
-
-
-    /*fgets ( monfichier, 100, fptr ); // transmet les 0 à 99 premiers elements
-
-    tabsegments[i] += i,monfichier;
-    i+=1;
-    printf("info %d\n", tabsegments[i]);*/
-
-    //chaque elt du tableau doit etre envoyé et si c fini envoyer
-    // fin recevoir ack du fin puis close socket
-
-
-
-
-
-
-    free(contenufichier);
     free(segmentsaenvoyer);
     fclose (fptr);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
