@@ -6,9 +6,13 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/stat.h>
+#include <time.h>
+
 
 #define MAXLINE 1024
-#define MTU 500
+#define MTU 1500
+
+
 
 char *String_Concat (char *String_1, char *String_2)
 {
@@ -22,6 +26,14 @@ char *String_Concat (char *String_1, char *String_2)
 }
 
 int main (int argc, char *argv[]) {
+  int filesize;
+  //POUR LE DEBIT-----------------------------------------
+  clock_t start_t, end_t, total_t;
+  //POUR LE TIMEOUT---------------------------------------
+  struct timeval timeout;
+  timeout.tv_sec = 0;
+  timeout.tv_usec = 50000;
+
 
   struct sockaddr_in adresse, client, adressedata;
   int port= 5001;
@@ -61,7 +73,8 @@ int main (int argc, char *argv[]) {
     perror("Cannot create socket\n");
     return -1;
   }
-  setsockopt(server_desc_data, SOL_SOCKET, SO_REUSEADDR, &valid, sizeof(int));
+  setsockopt(server_desc_data, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
+              sizeof(timeout));
 
   adressedata.sin_family= AF_INET;
   adressedata.sin_port= htons(7000);
@@ -86,7 +99,6 @@ int main (int argc, char *argv[]) {
     buffer[n] = '\0';
     if (strcmp(buffer,syn) == 0) {
       printf("Client : %s\n", buffer);
-
       sendto(server_desc, (const char *)"SYN-ACK7000", strlen("SYN ACK,7000"),
       MSG_CONFIRM, (const struct sockaddr *) &client,
             len);
@@ -103,6 +115,7 @@ int main (int argc, char *argv[]) {
       printf("FIN DU THREE WAY HANDSHAKE\n" );}
     else {
     close(server_desc);}
+//----------------------------- RECEPTION DU FICHIER ------------------------------------------
 
     n = recvfrom(server_desc_data, (char *)buffer, MTU,
     MSG_WAITALL, ( struct sockaddr *) &client,
@@ -113,7 +126,7 @@ int main (int argc, char *argv[]) {
     int caractere;
     fptr=fopen(buffer,"rb");
     stat(buffer, &st);
-    int filesize = st.st_size; //taille du fichier
+    filesize = st.st_size; //taille du fichier
     printf("taille du fichier: %d\n",filesize);
 
     char *segmentsaenvoyer = malloc(filesize * sizeof(int)); //vider le buffer c'est mieux
@@ -123,6 +136,9 @@ int main (int argc, char *argv[]) {
     char *numseqstr= malloc(6 * sizeof(long long));
     //numseqstr="000001";
     int envoye = 0;
+    struct tm * timeinfo1;
+
+
 
     while (envoye<filesize){
       int lus= fread(segmentsaenvoyer, 1, MTU, fptr);
@@ -131,20 +147,23 @@ int main (int argc, char *argv[]) {
       //printf("NUMERO DE SEQUENCE %d\n", lltoa(numseqstr);
       segments=String_Concat(numseqstr,segmentsaenvoyer);
       printf("SEGMENTS: %s\n", numseqstr);
-
+      start_t = clock();
       sendto(server_desc_data, (char *) segments,strlen(numseqstr)+lus,
       MSG_CONFIRM, (const struct sockaddr *) &client,
             len);
 //POUR RECEVOIR LE ACK00000N
       n = recvfrom(server_desc_data, (char *)buffer, 9,
-      MSG_WAITALL, ( struct sockaddr *) &client,
+      MSG_CONFIRM, ( struct sockaddr *) &client,
       &len);
       buffer[n] = '\0';
       memcpy(numack, buffer+3, 9 );
-      printf("NUMACK%s\n", numack);
-      numseq+=1;
-      sprintf(numseqstr, "%d", numseq); //conversion int --> str
 
+      printf("NUMACK%s\n", numack);
+      if (strcmp(numack,numseqstr)==0){
+        numseq+=1;
+
+        sprintf(numseqstr, "%d", numseq); //conversion int --> str
+}
 
       printf("Client : %s\n", buffer);
 
@@ -154,10 +173,17 @@ sendto(server_desc_data, (char *) "FIN",strlen("FIN"),
 MSG_CONFIRM, (const struct sockaddr *) &client,
       len);
 
+    end_t = clock();
 
     free(segmentsaenvoyer);
     fclose (fptr);
 
+    //printf(" LE END START %f\n", (end_t-start_t) / (CLOCKS_PER_SEC/1000)); // temps en ms
+    total_t = filesize*8*0.0001/((end_t - start_t) / (CLOCKS_PER_SEC/1000));
+    char *total;
+    memcpy(total,total_t,10 );
+    printf("Le débit est %s\n bits/sec"), total_t;
+    //printf("le débit est : %f\n bps", debit);
 
 
   }
@@ -165,4 +191,3 @@ MSG_CONFIRM, (const struct sockaddr *) &client,
 close(server_desc);
 return 0;
 }
-
