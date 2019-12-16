@@ -62,7 +62,7 @@ while j<len(tab_segments):
     ack_received= ack_received[3:9] # on reçoit ACK0000N il faut extraire les 6 derniers elements
     if ack_received == tab_segments[j][0:6]: # si le client a bien acquitté le dernier segment reçu, incrementer j pour envoyer le prochain segment
         j+=1
-    else:
+    #else:
         #SET UN TIMER PUIS RENVOYER
 #----------------------FIN DE TRANSFERT FICHIER---------------------------
 socket_data.sendto(b"FIN", addrclt)
