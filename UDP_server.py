@@ -3,7 +3,9 @@ import sys
 import os
 import signal
 import time
-
+from io import BytesIO
+from PIL import Image
+from subprocess import Popen, PIPE
 # Create a UDP socket
 UDP_IP_ADDRESS = "127.0.0.1"
 UDP_PORT_NO = 5001
@@ -19,7 +21,7 @@ socket_syn.bind((UDP_IP_ADDRESS, UDP_PORT_NO))
 
 print ("Bind succeeded")
 
-socket_data.settimeout(2) #les fct bloquantes comme le receive ne le seront plus après ce paramètre
+socket_data.settimeout(1) #les fct bloquantes comme le receive ne le seront plus après ce paramètre
 
 #sent = socket_syn.sendto("SYN".encode(),(UDP_IP_ADDRESS, UDP_PORT_NO))
 while 1:
@@ -36,17 +38,21 @@ while 1:
         break
 socket_data.bind((UDP_IP_ADDRESS, 7000))
 print ("Entering UDP data transfer mode...")
-fichierrecu= socket_data.recv(mtu).decode()
-print ("File", fichierrecu, "received")
-f = open("fichiertest.txt", 'rb')
+fichierrecu= socket_data.recv(mtu).decode() # pour que ça marche il faut mettre exactement la taille du buffer
+print ("File", fichierrecu[0:-1], "received")
+f = open(fichierrecu[0:-1], 'rb')
 #TRAITER LE CAS OU CEST UNE IMAGE
 f_size  = os.fstat(f.fileno()).st_size
-print ("taille fichier: ",f_size)
+#f_size =os.stat('coeur.jpg').st_size
+
 #-----------------------------------REMPLISSAGE DU TABLEAU DE SEGMENTS A ENVOYER-----------------------
 
+# essayer cette méthode
+#data = f.read()
+#tab_segments.append(data%mtu)
+
 while f.tell() < f_size:
-    print(f.tell())
-    data=f.read(mtu-6)
+    data=f.read(mtu)
     if len(str(i))==1:
         numseq= "00000" + str(i)
     if len(str(i))==2:
@@ -59,14 +65,15 @@ while f.tell() < f_size:
         numseq= "0" + str(i)
     if len(str(i))==6:
         numseq= str(i)
-    data=numseq+str(data[1:-2])
+    data=numseq+str(data)
     print(data)
     tab_segments.append(data)
     i+=1
 
 print ("longueur du tab: ", len(tab_segments))
 #----------------------------------------ENVOI DU TABLEAU AU CLIENT ---------------------------------
-print("Sending data from file", fichierrecu,"to the client")
+print("Sending data from file", fichierrecu,"to the client ...")
+time1= time.time()
 while j<len(tab_segments):
     socket_data.sendto(tab_segments[j].encode(), addrclt)
     try:
@@ -81,8 +88,11 @@ while j<len(tab_segments):
                 j+=1
 
 #----------------------FIN DE TRANSFERT FICHIER---------------------------
+time2= time.time()
 socket_data.sendto(b"FIN", addrclt)
-
-
+print("Data sent. End of communication.")
+print ("taille fichier: ",f_size)
+bitrate= (f_size *8 * 10**-6) / (time2-time1)
+print ("Bitrate:", round(bitrate,3),"Mbps")
 
 f.close()
