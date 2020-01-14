@@ -6,11 +6,12 @@ import time
 from io import BytesIO
 from PIL import Image
 from subprocess import Popen, PIPE
+import math
 # Create a UDP socket
 UDP_IP_ADDRESS = "127.0.0.1"
 UDP_PORT_NO = 5001
 socket_syn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-mtu=1500 -6 # -6 car 6 est la taille de notre numéro de séquence il faut donc l'inclure dans la taille totale de ce qu'on envoie
+mtu=1500-6 # -6 car 6 est la taille de notre numéro de séquence il faut donc l'inclure dans la taille totale de ce qu'on envoie
 #tab_segments= []
 i=1
 j=0
@@ -39,7 +40,7 @@ socket_syn.bind((UDP_IP_ADDRESS, UDP_PORT_NO))
 
 print ("Bind succeeded")
 
-socket_data.settimeout(1) #les fct bloquantes comme le receive ne le seront plus après ce paramètre
+socket_data.settimeout(0.0230) #les fct bloquantes comme le receive ne le seront plus après ce paramètre
 
 #sent = socket_syn.sendto("SYN".encode(),(UDP_IP_ADDRESS, UDP_PORT_NO))
 while 1:
@@ -97,17 +98,22 @@ print ("longueur du tab: ", len(tab_segments))
 print("Sending data from file", fichierrecu,"to the client ...")
 k=0
 time1= time.time()
-while k<len(tab_segments):
+while k+2<len(tab_segments):
     socket_data.sendto(tab_segments[k], addrclt)
+    socket_data.sendto(tab_segments[k+1], addrclt)
+    socket_data.sendto(tab_segments[k+2], addrclt)
+    socket_data.sendto(tab_segments[k+3], addrclt)
     try:
-        ack_received= socket_data.recv(9).decode() #essayer de recevoir le ack
-    except socket.timeout: # si on l'a pas reçu au bout de 5 sec
+        ack_received1= int(socket_data.recv(9).decode()[3:9]) #essayer de recevoir le ack
+        ack_received2= int(socket_data.recv(9).decode()[3:9]) #essayer de recevoir le ack
+        ack_received3= int(socket_data.recv(9).decode()[3:9]) #essayer de recevoir le ack
+        ack_received4= int(socket_data.recv(9).decode()[3:9]) #essayer de recevoir le ack
+        ack_received= max(ack_received1,ack_received2,ack_received3,ack_received4)
+    except socket.timeout: # si on l'a pas reçu au bout de timeout sec
         continue #refaire la boucle
     finally:
-        if len(ack_received) == 9:
-            ack_received= ack_received[3:9] # on reçoit ACK0000N il faut extraire les 6 derniers elements
-            if ack_received == tab_segments[k][0:6].decode(): # si le client a bien acquitté le dernier segment reçu, incrementer j pour envoyer le prochain segment
-                k+=1
+        k=ack_received
+
 
 #----------------------FIN DE TRANSFERT FICHIER---------------------------
 time2= time.time()
