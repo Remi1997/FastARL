@@ -97,14 +97,13 @@ print ("longueur du tab: ", len(tab_segments))
 #----------------------------------------ENVOI DU TABLEAU AU CLIENT ---------------------------------
 print("Sending data from file", fichierrecu,"to the client ...")
 current_segment=1
-sliding_window= 8
-ssthreshold=100
+sliding_window= 10
+ssthreshold=60
 total_segments= len(tab_segments)
 time1= time.time()
 list_ack_received=[]
 
 while current_segment <= total_segments: #tant qu'on a pas atteint une valeur superieure au denrier segment
-    print(sliding_window)
     if current_segment > total_segments - sliding_window: #retrecir la window car on a - que le window length qui nous reste
         sliding_window = total_segments- sliding_window #taille de la fenetre restante
     for segment in tab_segments[current_segment-1:current_segment-1+sliding_window]:#on envoie tous les paquets de la sliding_window
@@ -112,22 +111,22 @@ while current_segment <= total_segments: #tant qu'on a pas atteint une valeur su
     for segment in tab_segments[current_segment-1:current_segment-1+sliding_window]:
         try:
             list_ack_received.append(int(socket_data.recv(9).decode()[3:9]))
-
         except socket.timeout:
             continue
     for segment2 in tab_segments[current_segment-1:current_segment-1+sliding_window]:
-        print("segment",int(segment2[0:6].decode()) , "list_ack_received", list_ack_received)
+        #print("segment",int(segment2[0:6].decode()) , "list_ack_received", list_ack_received)
         if int(segment2[0:6].decode()) not in list_ack_received:
             current_segment = int(segment2[0:6].decode())
             print(int(segment2[0:6]))
-            break
         else:
             current_segment+=1 #pour chaque segment envoyé on incrémente de 1 le current segment
-            sliding_window+=1 # on augmente la taille de la sliding window de 1
+            if sliding_window<ssthreshold : #si taille  fenêtre inférieure au seuil
+                sliding_window+=1  # on augmente la taille de la sliding window de 1
 
-        if list_ack_received[len(list_ack_received)-sliding_window:len(list_ack_received)].count(list_ack_received[len(list_ack_received)-1])>2:
+        if list_ack_received[-3:-1].count(list_ack_received[-1])>2: #Si on reçoit plus de 3 fois le ACK d'un segment on diminue la fenêtre et on met à jour le current segment
+            print("dans le if")
             sliding_window=1
-            current_segment=list_ack_received[len(list_ack_received)-1]+1
+            current_segment=list_ack_received[-1]
 
 
 
