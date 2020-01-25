@@ -86,7 +86,6 @@ def connection_client(UDP_IP_ADDRESS,count,addrclt):
         print("Data sent. End of communication.")
         #bitrate= (f_size * 10**-6) / (time2-time1)
         #print ("Bitrate:", round(bitrate,3),"Mo/s")
-        socket_data.close()
 
 
 if __name__ == '__main__':
@@ -95,7 +94,6 @@ if __name__ == '__main__':
     UDP_IP_ADDRESS = "0.0.0.0"
     UDP_PORT_NO = int(sys.argv[1])
     socket_syn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    threads=[]
     socket_syn.bind((UDP_IP_ADDRESS, UDP_PORT_NO))
     count=0
     while True:
