@@ -71,7 +71,7 @@ while 1:
         seq_number= get_numseq(j+1).encode() # en bytes
         tab_segments.append(seq_number+f.read(mtu)) # la taille devient 1506
         j+=1
-
+    f.close()
 
     #----------------------------------- FIN REMPLISSAGE DU TABLEAU DE SEGMENTS A ENVOYER----------------
 
@@ -84,13 +84,7 @@ while 1:
     total_segments= len(tab_segments)
     time1= time.time()
     list_ack_received=[]
-
-    list_ack_non_received=[]
     while current_segment < total_segments: #tant qu'on a pas atteint une valeur superieure au denrier segment
-        ecart=0
-        if current_segment > total_segments - sliding_window: #retrecir la window car on a - que le window length qui nous reste
-            sliding_window = total_segments- sliding_window #taille de la fenetre restante
-
         for segment in tab_segments[current_segment-1:current_segment-1+sliding_window]:#on envoie tous les paquets de la sliding_window
             socket_data.sendto(segment, addrclt) #envoi de tous les segments du premier indice a l'indice+sliding sliding_window
 #------------------------ TRAITEMENT DES ACK-----------------------------------
@@ -138,5 +132,3 @@ while 1:
     print("Data sent. End of communication.")
     bitrate= (f_size * 10**-6) / (time2-time1)
     print ("Bitrate:", round(bitrate,3),"Mo/s")
-
-    f.close()
