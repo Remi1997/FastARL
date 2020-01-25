@@ -61,8 +61,8 @@ def connection_client(UDP_IP_ADDRESS,count,addrclt):
 
 
         while current_segment < total_segments: #tant qu'on a pas atteint une valeur superieure au denrier segment
-            if current_segment > total_segments - sliding_window: #retrecir la window car on a - que le window length qui nous reste
-                sliding_window = total_segments- current_segment #taille de la fenetre restante
+            #if current_segment > total_segments - sliding_window: #retrecir la window car on a - que le window length qui nous reste
+             #   sliding_window = total_segments- current_segment #taille de la fenetre restante
             for segment in tab_segments[current_segment-1:current_segment-1+sliding_window]:#on envoie tous les paquets de la sliding_window
                 socket_data.sendto(segment, addrclt) #envoi de tous les segments du premier indice a l'indice+sliding sliding_window
     #------------------------ TRAITEMENT DES ACK-----------------------------------
